@@ -23,7 +23,12 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  transpilePackages: ["@ffmpeg/ffmpeg", "@ffmpeg/util"],
   turbopack: {
+    resolveAlias: {
+      "@ffmpeg/ffmpeg": "@ffmpeg/ffmpeg",
+      "@ffmpeg/util": "@ffmpeg/util",
+    },
     rules: {
       "*.{jsx,tsx}": {
         loaders: [LOADER]
