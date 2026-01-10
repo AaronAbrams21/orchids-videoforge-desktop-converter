@@ -4,8 +4,9 @@ import VisualEditsMessenger from "../visual-edits/VisualEditsMessenger";
 import ErrorReporter from "@/components/ErrorReporter";
 import Script from "next/script";
 import { Space_Grotesk } from "next/font/google";
+import { Sidebar } from "@/components/Sidebar";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import Sidebar from "@/components/Sidebar";
+import { Toaster } from "sonner";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -24,19 +25,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${spaceGrotesk.variable}`} suppressHydrationWarning>
-      <body className="antialiased font-sans bg-[#F8F9FB] dark:bg-black text-[#1A1A1A] dark:text-white">
+      <body className="antialiased font-sans bg-[#F8F9FB] text-[#1A1A1A] dark:bg-[#0A0A0A] dark:text-white transition-colors duration-300">
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
+          defaultTheme="light"
           enableSystem
           disableTransitionOnChange
         >
-          <div className="flex min-h-screen">
-            <Sidebar />
-            <main className="flex-1 overflow-y-auto">
-              {children}
-            </main>
-          </div>
           <Script
             id="orchids-browser-logs"
             src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/scripts/orchids-browser-logs.js"
@@ -54,6 +49,14 @@ export default function RootLayout({
             data-debug="true"
             data-custom-data='{"appName": "YourApp", "version": "1.0.0", "greeting": "hi"}'
           />
+          
+          <div className="flex min-h-screen">
+            <Sidebar />
+            <main className="flex-1 ml-72 min-h-screen relative">
+              {children}
+            </main>
+          </div>
+          <Toaster position="top-right" richColors />
           <VisualEditsMessenger />
         </ThemeProvider>
       </body>

@@ -30,7 +30,6 @@ const nextConfig: NextConfig = {
       }
     }
   },
-  // Fix for FFmpeg and other WASM/Worker heavy libraries
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {
@@ -41,8 +40,7 @@ const nextConfig: NextConfig = {
       };
     }
     return config;
-  },
-  serverExternalPackages: ["@ffmpeg/ffmpeg", "@ffmpeg/util"]
+  }
 };
 
 export default nextConfig;

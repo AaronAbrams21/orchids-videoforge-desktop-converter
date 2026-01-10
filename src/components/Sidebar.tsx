@@ -7,62 +7,72 @@ import {
   Scissors, 
   FileAudio, 
   Settings, 
-  ShieldCheck,
-  LayoutDashboard
+  Layers,
+  ChevronRight,
+  Zap
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
-const items = [
-  { name: "Home", href: "/", icon: Home },
-  { name: "Convert", href: "/convert", icon: Scissors },
-  { name: "Transcribe", href: "/transcribe", icon: FileAudio },
-  { name: "Settings", href: "/settings", icon: Settings },
+const menuItems = [
+  { icon: Home, label: "Home", href: "/" },
+  { icon: Scissors, label: "Convert & Crop", href: "/convert" },
+  { icon: FileAudio, label: "Transcribe", href: "/transcribe" },
+  { icon: Settings, label: "Settings", href: "/settings" },
 ];
 
-export default function Sidebar() {
+export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-80 border-r border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-950 flex flex-col sticky top-0 h-screen">
-      <div className="p-10">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-black dark:bg-white rounded-2xl flex items-center justify-center">
-            <LayoutDashboard className="text-white dark:text-black w-6 h-6" />
-          </div>
-          <span className="font-bold text-2xl tracking-tight">Convrt</span>
+    <div className="w-72 h-screen bg-white/70 backdrop-blur-xl border-r border-zinc-100 flex flex-col p-6 fixed left-0 top-0 z-50">
+      <div className="flex items-center gap-3 px-2 mb-12">
+        <div className="w-10 h-10 bg-[#1A1A1A] rounded-2xl flex items-center justify-center shadow-lg shadow-black/10">
+          <Zap className="text-white w-6 h-6 fill-white" />
         </div>
+        <span className="font-black text-2xl tracking-tighter">Convrt</span>
       </div>
 
-      <nav className="flex-1 px-6 space-y-2">
-        <p className="px-4 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-4">Workspace</p>
-        {items.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              "flex items-center gap-4 px-6 py-4 rounded-[24px] font-bold transition-all",
-              pathname === item.href
-                ? "bg-zinc-100 dark:bg-zinc-900 text-black dark:text-white"
-                : "text-zinc-400 hover:text-black dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
-            )}
-          >
-            <item.icon className={cn("w-5 h-5", pathname === item.href ? "text-pink-500" : "text-current")} />
-            {item.name}
-          </Link>
-        ))}
+      <nav className="flex-1 space-y-2">
+        {menuItems.map((item) => {
+          const isActive = pathname === item.href;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "group flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all duration-300 relative overflow-hidden",
+                isActive 
+                  ? "bg-[#1A1A1A] text-white shadow-xl shadow-black/5" 
+                  : "hover:bg-zinc-50 text-zinc-400 hover:text-black"
+              )}
+            >
+              <div className="flex items-center gap-4 relative z-10">
+                <item.icon className={cn("w-5 h-5 transition-transform group-hover:scale-110", isActive && "text-white")} />
+                <span className="font-bold text-sm tracking-tight">{item.label}</span>
+              </div>
+              {isActive && (
+                <motion.div 
+                  layoutId="sidebar-active"
+                  className="absolute inset-0 bg-[#1A1A1A]"
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                />
+              )}
+              {isActive && <ChevronRight className="w-4 h-4 text-white/50 relative z-10" />}
+            </Link>
+          );
+        })}
       </nav>
 
-      <div className="p-8">
-        <div className="p-6 rounded-[32px] bg-pink-50 dark:bg-pink-500/10 border border-pink-100 dark:border-pink-500/20">
-          <div className="flex items-center gap-2 text-pink-500 mb-2">
-            <ShieldCheck className="w-4 h-4" />
-            <span className="text-xs font-black uppercase tracking-widest">Secure</span>
+      <div className="mt-auto">
+        <div className="p-6 rounded-[32px] bg-zinc-50 border border-zinc-100">
+          <p className="text-[10px] font-black text-zinc-300 uppercase tracking-[0.2em] mb-3">System Status</p>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+            <span className="text-xs font-bold text-zinc-500">Local Engine Active</span>
           </div>
-          <p className="text-xs font-bold text-zinc-600 dark:text-zinc-400 leading-relaxed">
-            All processing happens locally on your machine.
-          </p>
         </div>
       </div>
-    </aside>
+    </div>
   );
 }
