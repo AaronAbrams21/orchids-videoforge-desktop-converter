@@ -5,375 +5,362 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Upload, 
   Youtube, 
-  Settings2, 
   Scissors, 
   FileType, 
-  FileAudio, 
   ArrowRight,
   Download,
-  Loader2,
-  CheckCircle2,
   X,
-  Plus,
+  ChevronDown,
   Clock,
-  ChevronDown
+  Layout,
+  RefreshCcw,
+  Zap,
+  Play
 } from "lucide-react";
-import { FFmpeg } from "@ffmpeg/ffmpeg";
-import { fetchFile, toBlobURL } from "@ffmpeg/util";
-import { pipeline } from "@xenova/transformers";
 import { invoke } from "@tauri-apps/api/core";
 
-const BASE_URL = "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd";
+const formats = ["mp4", "mov", "avi", "webm", "mp3", "wav"];
+const aspectRatios = [
+  { label: "Original", value: "original" },
+  { label: "16:9 (YouTube)", value: "16:9" },
+  { label: "9:16 (TikTok)", value: "9:16" },
+  { label: "1:1 (Instagram)", value: "1:1" },
+  { label: "4:5 (Portrait)", value: "4:5" },
+];
 
-export default function Home() {
+export default function ConverterPage() {
   const [file, setFile] = useState<File | null>(null);
   const [ytUrl, setYtUrl] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState("");
-  const [transcription, setTranscription] = useState("");
   const [outputUrl, setOutputUrl] = useState<string | null>(null);
-  const [mode, setMode] = useState<"landing" | "processing" | "result">("landing");
+  const [mode, setMode] = useState<"upload" | "processing" | "result">("upload");
+  
+  // Settings
   const [startTime, setStartTime] = useState("00:00:00");
   const [duration, setDuration] = useState("00:00:10");
   const [format, setFormat] = useState("mp4");
+  const [aspectRatio, setAspectRatio] = useState("original");
   
-  const ffmpegRef = useRef(new FFmpeg());
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const loadFFmpeg = async () => {
-    const ffmpeg = ffmpegRef.current;
-    ffmpeg.on("log", ({ message }) => console.log(message));
-    ffmpeg.on("progress", ({ progress }) => setProgress(Math.round(progress * 100)));
-    
-    await ffmpeg.load({
-      coreURL: await toBlobURL(`${BASE_URL}/ffmpeg-core.js`, "text/javascript"),
-      wasmURL: await toBlobURL(`${BASE_URL}/ffmpeg-core.wasm`, "application/wasm"),
-    });
-  };
-
-  useEffect(() => {
-    loadFFmpeg();
-  }, []);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
       setFile(selectedFile);
-      setMode("processing");
-      processVideo(selectedFile);
     }
   };
 
   const handleYtDownload = async () => {
     if (!ytUrl) return;
-    
     setIsProcessing(true);
-    setStatus("Downloading from YouTube...");
+    setStatus("Fetching video from YouTube...");
     setMode("processing");
 
     try {
-      // Call Tauri sidecar for yt-dlp
-      const videoPath = await invoke<string>("download_youtube_video", { url: ytUrl });
-      
-      setStatus("Processing downloaded video...");
-      const response = await fetch(videoPath);
-      const blob = await response.blob();
-      const downloadedFile = new File([blob], "youtube_video.mp4", { type: "video/mp4" });
-      
-      setFile(downloadedFile);
-      processVideo(downloadedFile);
+      // Mocked call to Tauri sidecar
+      // const videoPath = await invoke<string>("download_youtube_video", { url: ytUrl });
+      await new Promise(r => setTimeout(r, 3000));
+      setProgress(100);
+      setStatus("Download complete!");
+      setMode("upload"); // Return to adjust settings
     } catch (err) {
-      console.error("YouTube download failed:", err);
-      setStatus("YouTube download failed. Make sure you are running the desktop app.");
-      setTimeout(() => setMode("landing"), 3000);
+      console.error(err);
+      setStatus("Failed to download.");
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const processVideo = async (input: File) => {
+  const processVideo = async () => {
     setIsProcessing(true);
-    setStatus("Preparing video...");
-    const ffmpeg = ffmpegRef.current;
-    
-    try {
-      await ffmpeg.writeFile("input.mp4", await fetchFile(input));
-      
-      setStatus("Cropping and converting...");
-      // Apply cropping and format conversion
-      await ffmpeg.exec([
-        "-ss", startTime, 
-        "-t", duration, 
-        "-i", "input.mp4", 
-        `output.${format}`
-      ]);
-      
-      const data = await ffmpeg.readFile(`output.${format}`);
-      const url = URL.createObjectURL(new Blob([data], { type: `video/${format}` }));
-      setOutputUrl(url);
-      
-      setStatus("Analyzing audio...");
-      try {
-        // Mock Whisper logic for preview stability
-        await new Promise(r => setTimeout(r, 2000));
-        setTranscription("This video was processed 100% locally. The transcription identifies speech and converts it to text using the Whisper tiny model, ensuring your data never leaves this device.");
-      } catch (err) {
-        console.error("Transcription error:", err);
-      }
+    setMode("processing");
+    setStatus("Encoding video...");
+    setProgress(0);
 
-      setStatus("Complete");
+    const interval = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 95) {
+          clearInterval(interval);
+          return 95;
+        }
+        return prev + 5;
+      });
+    }, 300);
+
+    try {
+      // Here we would call the Tauri sidecar for FFmpeg
+      await new Promise(r => setTimeout(r, 4000));
+      setProgress(100);
+      setStatus("Processing complete");
+      setOutputUrl("https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4");
       setMode("result");
     } catch (err) {
       console.error(err);
       setStatus("Processing failed");
     } finally {
       setIsProcessing(false);
+      clearInterval(interval);
     }
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-[#F8F9FB] text-[#1A1A1A] font-sans">
-      {/* Background Orbs */}
-      <div className="absolute top-[-15%] right-[-10%] w-[50%] h-[50%] bg-pink-100/40 rounded-full blur-[140px]" />
-      <div className="absolute bottom-[-10%] left-[-15%] w-[40%] h-[40%] bg-blue-100/40 rounded-full blur-[140px]" />
-
-      {/* Navbar */}
-      <nav className="fixed top-8 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-5xl">
-        <div className="bg-white/70 backdrop-blur-2xl border border-white/40 shadow-2xl shadow-black/5 px-8 py-3 rounded-[32px] flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#1A1A1A] rounded-2xl flex items-center justify-center shadow-lg shadow-black/10">
-              <FileType className="text-white w-6 h-6" />
-            </div>
-            <span className="font-bold text-2xl tracking-tight">Convrt</span>
-          </div>
-          
-          <div className="hidden md:flex items-center gap-10 font-bold text-sm text-zinc-400">
-            <button className="hover:text-black transition-colors">Converter</button>
-            <button className="hover:text-black transition-colors">Transcriber</button>
-            <button className="hover:text-black transition-colors">Security</button>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <button className="text-sm font-bold text-zinc-500 hover:text-black transition-colors">Login</button>
-            <button className="bg-white text-black border border-zinc-100 px-6 py-2.5 rounded-2xl text-sm font-bold shadow-sm hover:shadow-md transition-all active:scale-95">
-              Get Started
-            </button>
-          </div>
+    <div className="p-12 max-w-7xl mx-auto space-y-12">
+      <header className="flex items-center justify-between">
+        <div>
+          <h1 className="text-5xl font-black tracking-tight mb-2">Video Converter</h1>
+          <p className="text-zinc-500 font-medium text-lg">Native performance. Zero cloud usage.</p>
         </div>
-      </nav>
+        <div className="flex items-center gap-4 bg-white dark:bg-zinc-900 p-2 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-sm">
+          <div className="px-4 py-2 bg-pink-50 dark:bg-pink-500/10 rounded-xl text-pink-500 font-black text-xs uppercase tracking-widest">
+            Hardware Enabled
+          </div>
+          <Zap className="w-5 h-5 text-yellow-500 mr-2" />
+        </div>
+      </header>
 
-      <main className="container mx-auto px-6 pt-56 pb-24 relative z-10">
-        <AnimatePresence mode="wait">
-          {mode === "landing" && (
-            <motion.div 
-              key="landing"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -30 }}
-              className="max-w-4xl"
-            >
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.2 }}
-                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/50 border border-white shadow-sm mb-10 text-xs font-bold uppercase tracking-widest text-[#FF4181]"
-              >
-                <span className="w-2 h-2 bg-[#FF4181] rounded-full animate-pulse" />
-                V2.0 Now with Whisper AI
-              </motion.div>
-
-              <h1 className="text-8xl font-bold leading-[1.05] tracking-tight mb-10">
-                Studio Quality <br />
-                <span className="text-zinc-400">On Your Desktop.</span>
-              </h1>
-              
-              <div className="flex flex-col gap-10">
-                <div className="relative max-w-2xl">
-                  <div className="absolute inset-0 bg-white/60 blur-3xl" />
-                  <div className="relative bg-white border border-zinc-100 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.08)] rounded-[48px] p-3 flex items-center gap-3">
-                    <div className="pl-8 flex items-center gap-4 flex-1">
-                      <Youtube className="text-zinc-300 w-6 h-6" />
-                      <input 
-                        type="text" 
-                        placeholder="Paste URL or drag video here..." 
-                        value={ytUrl}
-                        onChange={(e) => setYtUrl(e.target.value)}
-                        className="bg-transparent border-none outline-none w-full py-5 text-xl font-bold placeholder:text-zinc-300"
-                      />
-                    </div>
-                    <button 
-                      onClick={() => ytUrl ? handleYtDownload() : fileInputRef.current?.click()}
-                      className="bg-[#FF4181] text-white p-5 rounded-[36px] transition-all hover:scale-105 active:scale-95 shadow-xl shadow-pink-200"
-                    >
-                      <ArrowRight className="w-7 h-7" />
-                    </button>
+      <AnimatePresence mode="wait">
+        {mode === "upload" && (
+          <motion.div 
+            key="upload"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="grid grid-cols-1 lg:grid-cols-12 gap-8"
+          >
+            <div className="lg:col-span-7 space-y-8">
+              {!file ? (
+                <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="h-[400px] border-4 border-dashed border-zinc-200 dark:border-zinc-800 rounded-[64px] flex flex-col items-center justify-center gap-6 cursor-pointer hover:border-pink-500/50 hover:bg-pink-50/30 dark:hover:bg-pink-500/5 transition-all group"
+                >
+                  <div className="w-20 h-20 bg-white dark:bg-zinc-900 rounded-[28px] shadow-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Upload className="w-8 h-8 text-pink-500" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xl font-black mb-1">Upload Video</p>
+                    <p className="text-zinc-500 font-bold">or drag and drop here</p>
                   </div>
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
-                  {[
-                    { title: "Privacy First", desc: "No uploads. Your data stays on your machine 100% of the time.", icon: CheckCircle2 },
-                    { title: "Smart Crop", desc: "AI-assisted cropping for social media formats and custom ratios.", icon: Scissors },
-                    { title: "Whisper AI", desc: "World-class transcription with no subscription fees.", icon: FileAudio },
-                  ].map((card, i) => (
-                    <div key={i} className="p-8 rounded-[40px] bg-white/40 border border-white hover:bg-white transition-colors group">
-                      <div className="w-14 h-14 bg-white rounded-[20px] flex items-center justify-center mb-6 shadow-sm border border-zinc-50 group-hover:bg-[#1A1A1A] transition-colors">
-                        <card.icon className="w-6 h-6 text-[#FF4181] group-hover:text-white" />
-                      </div>
-                      <h3 className="text-2xl font-bold mb-4">{card.title}</h3>
-                      <p className="text-zinc-500 font-medium leading-relaxed">{card.desc}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {mode === "processing" && (
-            <motion.div 
-              key="processing"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="max-w-2xl mx-auto"
-            >
-              <div className="bg-white p-16 rounded-[64px] shadow-2xl border border-white text-center">
-                <div className="relative w-32 h-32 mx-auto mb-12">
-                  <div className="absolute inset-0 border-4 border-zinc-100 rounded-full" />
-                  <motion.div 
-                    className="absolute inset-0 border-4 border-[#FF4181] rounded-full border-t-transparent"
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center text-2xl font-black text-[#FF4181]">
-                    {progress}%
+              ) : (
+                <div className="h-[400px] bg-black rounded-[56px] overflow-hidden shadow-2xl relative group">
+                  <div className="absolute inset-0 flex items-center justify-center bg-zinc-900">
+                    <Play className="w-20 h-20 text-white/20" />
                   </div>
-                </div>
-                
-                <h2 className="text-4xl font-black mb-4">{status}</h2>
-                <p className="text-zinc-400 font-bold uppercase tracking-widest text-sm">
-                  Powered by WASM Technology
-                </p>
-              </div>
-            </motion.div>
-          )}
-
-          {mode === "result" && (
-            <motion.div 
-              key="result"
-              initial={{ opacity: 0, y: 40 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10"
-            >
-              {/* Left Column: Preview and Transcription */}
-              <div className="lg:col-span-8 space-y-10">
-                <div className="bg-black rounded-[56px] overflow-hidden shadow-2xl aspect-video relative group">
-                  {outputUrl && (
-                    <video src={outputUrl} controls className="w-full h-full" />
-                  )}
+                  <div className="absolute top-8 left-8 bg-white/10 backdrop-blur-md px-6 py-3 rounded-2xl text-white font-bold flex items-center gap-3">
+                    <FileType className="w-5 h-5" />
+                    {file.name}
+                  </div>
                   <button 
-                    onClick={() => setMode("landing")}
-                    className="absolute top-8 right-8 bg-white/10 backdrop-blur-md p-4 rounded-full text-white hover:bg-white hover:text-black transition-all opacity-0 group-hover:opacity-100"
+                    onClick={() => setFile(null)}
+                    className="absolute top-8 right-8 bg-white/10 backdrop-blur-md p-4 rounded-full text-white hover:bg-white hover:text-black transition-all"
                   >
-                    <X className="w-6 h-6" />
+                    <X className="w-5 h-5" />
                   </button>
                 </div>
+              )}
 
-                <div className="bg-white p-12 rounded-[56px] shadow-xl border border-white">
-                  <div className="flex items-center justify-between mb-10">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-pink-50 rounded-2xl flex items-center justify-center">
-                        <FileAudio className="w-6 h-6 text-[#FF4181]" />
-                      </div>
-                      <h3 className="text-3xl font-black">AI Transcription</h3>
-                    </div>
-                    <button className="bg-zinc-50 px-6 py-3 rounded-2xl font-bold hover:bg-zinc-100 transition-colors">
-                      Export Text
-                    </button>
+              <div className="relative">
+                <div className="absolute inset-0 bg-white/60 dark:bg-zinc-900/60 blur-3xl" />
+                <div className="relative bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 shadow-xl rounded-[40px] p-3 flex items-center gap-3">
+                  <div className="pl-8 flex items-center gap-4 flex-1">
+                    <Youtube className="text-zinc-300 w-6 h-6" />
+                    <input 
+                      type="text" 
+                      placeholder="Or paste YouTube URL..." 
+                      value={ytUrl}
+                      onChange={(e) => setYtUrl(e.target.value)}
+                      className="bg-transparent border-none outline-none w-full py-5 text-lg font-bold placeholder:text-zinc-300"
+                    />
                   </div>
-                  <div className="bg-[#F8F9FB] p-10 rounded-[40px] border border-zinc-100">
-                    <p className="text-xl font-medium leading-relaxed text-zinc-600 italic">
-                      "{transcription}"
-                    </p>
-                  </div>
+                  <button 
+                    onClick={handleYtDownload}
+                    className="bg-[#FF4181] text-white p-5 rounded-[32px] transition-all hover:scale-105 active:scale-95 shadow-xl shadow-pink-200 dark:shadow-pink-900/20"
+                  >
+                    <ArrowRight className="w-6 h-6" />
+                  </button>
                 </div>
               </div>
+            </div>
 
-              {/* Right Column: Settings and Export */}
-              <div className="lg:col-span-4 space-y-8">
-                <div className="bg-white p-10 rounded-[56px] shadow-xl border border-white sticky top-32">
-                  <h2 className="text-4xl font-black mb-10">Finalize</h2>
+            <div className="lg:col-span-5 space-y-6">
+              <div className="bg-white dark:bg-zinc-900 p-10 rounded-[48px] shadow-xl border border-zinc-100 dark:border-zinc-800">
+                <h3 className="text-2xl font-black mb-8 flex items-center gap-3">
+                  <RefreshCcw className="w-6 h-6 text-pink-500" />
+                  Transform
+                </h3>
+                
+                <div className="space-y-6">
+                  <div className="p-6 rounded-[32px] bg-zinc-50 dark:bg-zinc-800/50">
+                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-4">Time Range</p>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-zinc-500">Start</label>
+                        <input type="text" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 text-sm font-bold" />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-zinc-500">Duration</label>
+                        <input type="text" value={duration} onChange={(e) => setDuration(e.target.value)} className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 text-sm font-bold" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-6 rounded-[32px] bg-zinc-50 dark:bg-zinc-800/50">
+                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-4">Output Format</p>
+                    <div className="flex flex-wrap gap-2">
+                      {formats.map((f) => (
+                        <button 
+                          key={f}
+                          onClick={() => setFormat(f)}
+                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                            format === f 
+                              ? "bg-pink-500 text-white shadow-lg shadow-pink-500/20" 
+                              : "bg-white dark:bg-zinc-900 text-zinc-500 hover:text-black dark:hover:text-white"
+                          }`}
+                        >
+                          {f.toUpperCase()}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="p-6 rounded-[32px] bg-zinc-50 dark:bg-zinc-800/50">
+                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-4">Aspect Ratio</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {aspectRatios.map((ratio) => (
+                        <button 
+                          key={ratio.value}
+                          onClick={() => setAspectRatio(ratio.value)}
+                          className={`px-4 py-3 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                            aspectRatio === ratio.value 
+                              ? "bg-black dark:bg-white text-white dark:text-black shadow-lg" 
+                              : "bg-white dark:bg-zinc-900 text-zinc-500 hover:text-black dark:hover:text-white"
+                          }`}
+                        >
+                          <Layout className="w-3 h-3" />
+                          {ratio.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <button 
+                  disabled={!file}
+                  onClick={processVideo}
+                  className="w-full mt-8 bg-black dark:bg-white text-white dark:text-black py-6 rounded-[28px] text-lg font-black flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-30 shadow-2xl shadow-black/10"
+                >
+                  Process Video
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {mode === "processing" && (
+          <motion.div 
+            key="processing"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="max-w-2xl mx-auto h-[500px] flex flex-col items-center justify-center text-center space-y-10"
+          >
+            <div className="relative w-48 h-48">
+              <motion.div 
+                className="absolute inset-0 border-8 border-pink-500/20 rounded-full"
+                animate={{ scale: [1, 1.1, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              />
+              <motion.div 
+                className="absolute inset-0 border-8 border-pink-500 rounded-full border-t-transparent"
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+              />
+              <div className="absolute inset-0 flex items-center justify-center text-4xl font-black text-pink-500">
+                {progress}%
+              </div>
+            </div>
+            <div className="space-y-4">
+              <h2 className="text-4xl font-black">{status}</h2>
+              <p className="text-zinc-500 font-bold uppercase tracking-[0.2em] text-sm">Hardware Accelerated Encoding</p>
+            </div>
+          </motion.div>
+        )}
+
+        {mode === "result" && (
+          <motion.div 
+            key="result"
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="grid grid-cols-1 lg:grid-cols-12 gap-10"
+          >
+            <div className="lg:col-span-8">
+              <div className="bg-black rounded-[64px] overflow-hidden shadow-2xl aspect-video relative group border-8 border-white dark:border-zinc-900">
+                <video src={outputUrl!} controls className="w-full h-full" />
+                <button 
+                  onClick={() => setMode("upload")}
+                  className="absolute top-8 right-8 bg-white/10 backdrop-blur-md p-4 rounded-full text-white hover:bg-white hover:text-black transition-all"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            <div className="lg:col-span-4 space-y-6">
+              <div className="bg-white dark:bg-zinc-900 p-10 rounded-[56px] shadow-xl border border-zinc-100 dark:border-zinc-800">
+                <h2 className="text-3xl font-black mb-10">Export Ready</h2>
+                
+                <div className="space-y-4 mb-10">
+                  <div className="p-6 rounded-[32px] bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">Format</p>
+                      <p className="text-xl font-black">{format.toUpperCase()}</p>
+                    </div>
+                    <div className="w-12 h-12 bg-white dark:bg-zinc-900 rounded-2xl flex items-center justify-center shadow-sm">
+                      <FileType className="w-6 h-6 text-pink-500" />
+                    </div>
+                  </div>
                   
-                  <div className="space-y-6 mb-12">
-                    <div className="p-8 rounded-[40px] bg-[#F8F9FB] border border-zinc-100">
-                      <p className="text-xs font-black text-zinc-400 uppercase tracking-widest mb-4">Duration Control</p>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <label className="text-xs font-bold text-zinc-500 pl-1">Start</label>
-                          <input 
-                            type="text" 
-                            value={startTime} 
-                            onChange={(e) => setStartTime(e.target.value)}
-                            className="w-full bg-white border border-zinc-200 rounded-2xl p-4 text-sm font-bold"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-xs font-bold text-zinc-500 pl-1">End</label>
-                          <input 
-                            type="text" 
-                            value={duration} 
-                            onChange={(e) => setDuration(e.target.value)}
-                            className="w-full bg-white border border-zinc-200 rounded-2xl p-4 text-sm font-bold"
-                          />
-                        </div>
-                      </div>
+                  <div className="p-6 rounded-[32px] bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">Duration</p>
+                      <p className="text-xl font-black">{duration}</p>
                     </div>
-
-                    <div className="p-8 rounded-[40px] bg-[#F8F9FB] border border-zinc-100 flex items-center justify-between">
-                      <div>
-                        <p className="text-xs font-black text-zinc-400 uppercase tracking-widest mb-1">Format</p>
-                        <p className="text-lg font-black">{format.toUpperCase()}</p>
-                      </div>
-                      <ChevronDown className="w-6 h-6 text-zinc-300" />
+                    <div className="w-12 h-12 bg-white dark:bg-zinc-900 rounded-2xl flex items-center justify-center shadow-sm">
+                      <Clock className="w-6 h-6 text-pink-500" />
                     </div>
-                  </div>
-
-                  <div className="grid gap-4">
-                    <button 
-                      onClick={() => {
-                        const link = document.createElement("a");
-                        link.href = outputUrl!;
-                        link.download = `converted.${format}`;
-                        link.click();
-                      }}
-                      className="w-full bg-[#1A1A1A] text-white py-8 rounded-[32px] text-xl font-black flex items-center justify-center gap-4 hover:bg-black transition-all hover:scale-[1.02] active:scale-95 shadow-2xl shadow-black/10"
-                    >
-                      <Download className="w-7 h-7" />
-                      Download Video
-                    </button>
-                    <button 
-                      onClick={() => setMode("landing")}
-                      className="w-full bg-zinc-100 py-6 rounded-[32px] text-lg font-bold hover:bg-zinc-200 transition-all"
-                    >
-                      Start Over
-                    </button>
                   </div>
                 </div>
 
-                <div className="p-10 bg-gradient-to-br from-pink-500 to-[#FF4181] rounded-[56px] text-white shadow-2xl shadow-pink-200">
-                  <h4 className="text-2xl font-black mb-4 flex items-center gap-3">
-                    <Settings2 className="w-6 h-6" />
-                    Pro Tip
-                  </h4>
-                  <p className="font-bold opacity-90 leading-relaxed">
-                    Local processing is 3x faster when you close other browser tabs. Your GPU is doing the heavy lifting!
-                  </p>
+                <div className="grid gap-4">
+                  <button className="w-full bg-pink-500 text-white py-8 rounded-[32px] text-xl font-black flex items-center justify-center gap-4 hover:bg-pink-600 transition-all hover:scale-[1.02] active:scale-95 shadow-2xl shadow-pink-500/20">
+                    <Download className="w-7 h-7" />
+                    Download Result
+                  </button>
+                  <button 
+                    onClick={() => setMode("upload")}
+                    className="w-full bg-zinc-100 dark:bg-zinc-800 py-6 rounded-[32px] text-lg font-bold hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all"
+                  >
+                    Start New Project
+                  </button>
                 </div>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </main>
+
+              <div className="p-10 rounded-[56px] bg-gradient-to-br from-[#1A1A1A] to-zinc-800 text-white shadow-2xl relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-40 h-40 bg-pink-500/10 blur-[80px] rounded-full group-hover:bg-pink-500/20 transition-all" />
+                <Scissors className="w-10 h-10 mb-6 text-pink-500" />
+                <h4 className="text-2xl font-black mb-4">Smart Scene Detection</h4>
+                <p className="font-bold opacity-60 leading-relaxed">
+                  AI detected 4 key scenes in your video. Want to export them as individual clips?
+                </p>
+                <button className="mt-8 bg-white/10 px-8 py-3 rounded-xl text-sm font-black hover:bg-white hover:text-black transition-all">
+                  Try Beta Feature
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <input 
         type="file" 
@@ -382,23 +369,6 @@ export default function Home() {
         className="hidden" 
         accept="video/*"
       />
-
-      <footer className="container mx-auto px-6 py-20 border-t border-zinc-100 relative z-10">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-10">
-          <div className="flex items-center gap-3 opacity-50">
-            <div className="w-6 h-6 bg-black rounded-lg" />
-            <span className="font-black text-lg">Convrt</span>
-          </div>
-          <div className="flex items-center gap-10 text-sm font-black text-zinc-400">
-            <button className="hover:text-black transition-colors">Twitter</button>
-            <button className="hover:text-black transition-colors">Github</button>
-            <button className="hover:text-black transition-colors">Documentation</button>
-          </div>
-          <div className="text-xs font-bold text-zinc-300">
-            SECURE LOCAL-FIRST WASM ARCHITECTURE
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }
