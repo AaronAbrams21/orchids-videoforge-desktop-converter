@@ -4,9 +4,8 @@ import VisualEditsMessenger from "../visual-edits/VisualEditsMessenger";
 import ErrorReporter from "@/components/ErrorReporter";
 import Script from "next/script";
 import { Space_Grotesk } from "next/font/google";
-import { Sidebar } from "@/components/Sidebar";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { Toaster } from "sonner";
+import { Sidebar } from "@/components/Sidebar";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -25,7 +24,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${spaceGrotesk.variable}`} suppressHydrationWarning>
-      <body className="antialiased font-sans bg-[#F8F9FB] text-[#1A1A1A] dark:bg-[#0A0A0A] dark:text-white transition-colors duration-300">
+      <body className="antialiased font-sans bg-[#F8F9FB] dark:bg-zinc-950 text-[#1A1A1A] dark:text-zinc-100">
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
@@ -52,11 +51,11 @@ export default function RootLayout({
           
           <div className="flex min-h-screen">
             <Sidebar />
-            <main className="flex-1 ml-72 min-h-screen relative">
+            <main className="flex-1 lg:ml-64 relative">
               {children}
             </main>
           </div>
-          <Toaster position="top-right" richColors />
+
           <VisualEditsMessenger />
         </ThemeProvider>
       </body>
