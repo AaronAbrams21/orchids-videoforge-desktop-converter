@@ -29,7 +29,20 @@ const nextConfig: NextConfig = {
         loaders: [LOADER]
       }
     }
-  }
+  },
+  // Fix for FFmpeg and other WASM/Worker heavy libraries
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        path: false,
+        crypto: false,
+      };
+    }
+    return config;
+  },
+  serverExternalPackages: ["@ffmpeg/ffmpeg", "@ffmpeg/util"]
 };
 
 export default nextConfig;

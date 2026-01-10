@@ -5,7 +5,7 @@ import ErrorReporter from "@/components/ErrorReporter";
 import Script from "next/script";
 import { Space_Grotesk } from "next/font/google";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { Sidebar } from "@/components/Sidebar";
+import Sidebar from "@/components/Sidebar";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -24,16 +24,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${spaceGrotesk.variable}`} suppressHydrationWarning>
-      <body className="antialiased font-sans bg-[#F8F9FB] dark:bg-zinc-950 text-[#1A1A1A] dark:text-zinc-100">
+      <body className="antialiased font-sans bg-[#F8F9FB] dark:bg-black text-[#1A1A1A] dark:text-white">
         <ThemeProvider
           attribute="class"
-          defaultTheme="light"
+          defaultTheme="system"
           enableSystem
           disableTransitionOnChange
         >
           <div className="flex min-h-screen">
             <Sidebar />
-            <main className="flex-1 ml-64 overflow-y-auto">
+            <main className="flex-1 overflow-y-auto">
               {children}
             </main>
           </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Moon, 
   Sun, 
@@ -10,17 +10,20 @@ import {
   Download, 
   CheckCircle2, 
   AlertCircle,
-  HardDrive,
   Cpu,
   Trash2
 } from "lucide-react";
 import { useTheme } from "next-themes";
-import { motion } from "framer-motion";
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState<{ [key: string]: number }>({});
   const [downloading, setDownloading] = useState<{ [key: string]: boolean }>({});
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const models = [
     { id: "tiny", name: "Whisper Tiny", size: "75 MB", desc: "Fastest, lowest accuracy. Good for quick tests.", downloaded: true },
@@ -40,6 +43,17 @@ export default function SettingsPage() {
       }
     }, 100);
   };
+
+  if (!mounted) {
+    return (
+      <div className="p-12 max-w-5xl mx-auto space-y-16 opacity-0">
+        <header>
+          <div className="h-12 w-48 bg-zinc-100 rounded-xl animate-pulse mb-2" />
+          <div className="h-4 w-64 bg-zinc-50 rounded-lg animate-pulse" />
+        </header>
+      </div>
+    );
+  }
 
   return (
     <div className="p-12 max-w-5xl mx-auto space-y-16">
