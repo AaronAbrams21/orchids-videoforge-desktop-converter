@@ -1,6 +1,6 @@
 // Prevents additional console window on Windows in release
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-
+use tauri::Manager;
 use tauri::{command, AppHandle};
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext};
 use hound::{WavReader, SampleFormat};
@@ -84,7 +84,7 @@ async fn transcribe_wav(
 
     // Load model
     let ctx = WhisperContext::new(&model_path)
-        .map_err(|e| format!("Failed to load model: {}", e))?;
+    .map_err(|e| format!("Failed to load model: {}", e))?;
 
     // Read WAV (must be 16kHz mono float32 for now)
     let mut reader = WavReader::open(&wav_path)
@@ -126,10 +126,10 @@ async fn transcribe_wav(
         text.push_str(&segment_text);
         text.push(' ');
     }
-
-    let detected_lang = state.full_lang_id()
-        .and_then(|id| ctx.token_to_str(id).ok())
-        .map(|s| s.to_string());
+    let detected_lang = state.full_lang_id_from_state()
+    .ok()
+    .and_then(|id| ctx.token_to_str(id).ok())
+    .map(|s| s.to_string());
 
     Ok(TranscriptionResult {
         text: text.trim().to_string(),
@@ -137,7 +137,10 @@ async fn transcribe_wav(
         error: None,
     })
 }
-
+#[tauri::command]
+async fn download_youtube_video(url: String) -> Result<String, String> {
+    Ok(format!("Downloaded video from: {}", url))
+}
 #[command]
 async fn list_downloaded_models(app: AppHandle) -> Result<Vec<String>, String> {
     let dir = get_models_dir(&app).map_err(|e| e.to_string())?;
@@ -158,7 +161,6 @@ async fn list_downloaded_models(app: AppHandle) -> Result<Vec<String>, String> {
 
     Ok(models)
 }
-
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
@@ -168,6 +170,7 @@ fn main() {
             transcribe_wav,
             list_downloaded_models
         ])
+        
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

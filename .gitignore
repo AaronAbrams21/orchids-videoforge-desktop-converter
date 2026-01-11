@@ -12,6 +12,9 @@
 
 # testing
 /coverage
+/src-tauri/gen
+/src-tauri/target
+
 
 # next.js
 /.next/
